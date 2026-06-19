@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipts — Metabolic Engine</title>
+
+    <!-- Real-time SVG Favicon with dynamic color scheme support -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cstyle%3Epath%7Bfill:%230b0b0b;%7D@media(prefers-color-scheme:dark)%7Bpath%7Bfill:%23f3f4f6;%7D%7D%3C/style%3E%3Cpath d='M10.5 4v6.5H4v3h6.5V20h3v-6.5H20v-3h-6.5V4h-3z'/%3E%3C/svg%3E">
+
+    <!-- Load Varela font from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Varela&family=Varela+Round&display=swap" rel="stylesheet">
+
+    <style>
+        /* CSS Variables for elegant theme system */
+        :root {
+            --bg-color: #0b0b0b;
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --link-color: #ffffff;
+            --link-hover-opacity: 0.8;
+            --border-color: #1f2937;
+            --selection-bg: rgba(255, 255, 255, 0.1);
+            --dock-bg: rgba(20, 20, 20, 0.65);
+            --dock-border: rgba(255, 255, 255, 0.08);
+            --dock-item-hover: rgba(255, 255, 255, 0.08);
+            --font-body: 'Varela', 'Varela Round', system-ui, -apple-system, sans-serif;
+            --font-serif: Georgia, serif;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f9fafb;
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --text-muted: #9ca3af;
+            --link-color: #111827;
+            --border-color: #e5e7eb;
+            --selection-bg: rgba(0, 0, 0, 0.06);
+            --dock-bg: rgba(255, 255, 255, 0.7);
+            --dock-border: rgba(0, 0, 0, 0.08);
+            --dock-item-hover: rgba(0, 0, 0, 0.04);
+        }
+
+        /* Reset and Core Layout */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 14px;
+            line-height: 1.7;
+            letter-spacing: -0.01em;
+            transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        ::selection {
+            background: var(--selection-bg);
+        }
+
+        /* App Container focusing on middle alignment & thick margins */
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            /* Creates equal vertical whitespace on top and bottom */
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            /* Keeps content perfectly centered inside main viewport bounds */
+        }
+
+        /* Typography */
+        h1,
+        h2,
+        h3 {
+            font-weight: normal;
+            font-size: 14px;
+        }
+
+        .intro-paragraph {
+            margin-bottom: 24px;
+            color: var(--text-secondary);
+            font-size: 14.5px;
+            line-height: 1.8;
+            text-align: left;
+            /* Text remains clean left-aligned */
+        }
+
+        /* Elegant Italic Serif Text */
+        .serif-italic {
+            font-family: var(--font-serif);
+            font-style: italic;
+            letter-spacing: normal;
+            color: var(--text-primary);
+        }
+
+        /* Refined Link Configuration */
+        a,
+        .text-link {
+            color: var(--link-color);
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            text-decoration-thickness: 1px;
+            transition: opacity 0.2s ease;
+            cursor: pointer;
+        }
+
+        a:hover,
+        .text-link:hover {
+            opacity: var(--link-hover-opacity);
+        }
+
+        /* Multi-Page Views System with thick vertical margins */
+        .page-view {
+            display: none;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            margin: 80px 0;
+            /* Clear, breathing workspace whitespace bounds */
+        }
+
+        .page-view.active-page {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Interactive Action Pill Block */
+        .action-container {
+            margin-top: 36px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .primary-download-btn {
+            background: var(--dock-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--dock-border);
+            color: var(--text-primary);
+            padding: 8px 24px;
+            border-radius: 999px;
+            /* Pill shaped */
+            font-family: var(--font-body);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: background 0.2s, border-color 0.2s, transform 0.1s;
+            text-decoration: none;
+            border-bottom: none !important;
+        }
+
+        .primary-download-btn:hover {
+            background: var(--dock-item-hover);
+            border-color: var(--text-secondary);
+            opacity: 1;
+        }
+
+        .primary-download-btn:active {
+            transform: scale(0.97);
+        }
+
+        .version-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            margin-left: 12px;
+        }
+
+        /* Interactive Floating Bottom Navigation Dock */
+        .dock-container {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 900;
+            pointer-events: none;
+            width: max-content;
+            max-width: 90%;
+        }
+
+        .floating-dock {
+            pointer-events: auto;
+            background: var(--dock-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--dock-border);
+            border-radius: 999px;
+            padding: 6px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s;
+        }
+
+        [data-theme="light"] .floating-dock {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        }
+
+        .dock-logo-btn {
+            background: transparent;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: background 0.2s, transform 0.2s, color 0.2s;
+            text-decoration: none;
+        }
+
+        .dock-logo-btn:hover {
+            color: var(--text-primary);
+            background: var(--dock-item-hover);
+        }
+
+        .dock-logo-btn:active {
+            transform: scale(0.95);
+        }
+
+        .logo-node-icon {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        .dock-divider {
+            width: 1px;
+            height: 16px;
+            background: var(--border-color);
+        }
+
+        .dock-links {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dock-btn {
+            background: transparent;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            font-family: var(--font-body);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            padding: 6px 14px;
+            border-radius: 999px;
+            transition: color 0.2s, background-color 0.2s;
+            border-bottom: none !important;
+        }
+
+        .dock-btn:hover {
+            color: var(--text-primary);
+            background: var(--dock-item-hover);
+        }
+
+        .dock-btn.active-dock-btn {
+            color: var(--text-primary);
+            font-weight: 600;
+            background: var(--dock-item-hover);
+        }
+
+        /* Footer Elements */
+        footer {
+            border-top: 1px solid var(--border-color);
+            padding-top: 24px;
+            margin-top: auto;
+            /* Gracefully settles to the bottom boundary */
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            transition: border-color 0.3s;
+        }
+
+        /* Command Palette overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(2px);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 15vh;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .cmd-menu {
+            width: 100%;
+            max-width: 500px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            transform: translateY(-20px);
+            transition: transform 0.15s ease;
+        }
+
+        .modal-overlay.active .cmd-menu {
+            transform: translateY(0);
+        }
+
+        .cmd-input-container {
+            position: relative;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .cmd-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            padding: 16px;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .cmd-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .cmd-list {
+            max-height: 280px;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .cmd-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.1s ease;
+        }
+
+        .cmd-item:hover,
+        .cmd-item.selected {
+            background: var(--border-color);
+        }
+
+        .cmd-item-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+        }
+
+        .cmd-shortcut {
+            color: var(--text-muted);
+            font-size: 11px;
+            background: rgba(128, 128, 128, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* Clipboard toast system */
+        .toast {
+            position: fixed;
+            bottom: 110px;
+            left: 50%;
+            transform: translate(-50%, 10px);
+            background: var(--text-primary);
+            color: var(--bg-color);
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.25s, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+            z-index: 1001;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .toast.show {
+            opacity: 0.95;
+            transform: translate(-50%, 0);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <main>
+            <!-- PAGE 1: RECEIPTS HOME (Initial Centered View) -->
+            <section id="page-receipts" class="page-view active-page">
+                <p class="intro-paragraph">
+                    The <strong>Receipts engine</strong> is a high-fidelity metabolic tracker that calculates your
+                    <em>precise</em> <strong>Total Daily Energy Expenditure (TDEE)</strong>. By using moving averages
+                    and regression models, it filters out weight fluctuations from sodium, hydration, and glycogen. The
+                    system <em>continuously updates</em> your <strong>calorie and macronutrient targets</strong> based
+                    on your real-world progress. It acts as an <strong>automated coach</strong> to <u>protect muscle
+                        mass</u>, <u>prevent stalls</u>, and <u>guarantee predictable</u> body recomposition
+                    <u>results</u> without the usual guesswork.
+                </p>
+
+                <div class="action-container">
+                    <a href="https://github.com/placeholder/receipts" class="primary-download-btn" target="_blank"
+                        rel="noopener">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                        <span>Use Now</span>
+                    </a>
+                    <span class="version-label">v1.0 | beta</span>
+                </div>
+            </section>
+
+            <!-- PAGE 2: DOCUMENTATION -->
+            <section id="page-docs" class="page-view">
+                <p class="serif-italic"
+                    style="font-size: 15px; text-align: center; color: var(--text-muted); letter-spacing: 0.05em;">
+                    Under Construction
+                </p>
+            </section>
+
+            <!-- PAGE 3: CONTACT -->
+            <section id="page-contact" class="page-view">
+                <p class="intro-paragraph">
+                    Reach me at <a href="mailto:hello@tinusha.com">hello@tinusha.com</a> and <a
+                        href="https://www.linkedin.com/in/tinusha/" target="_blank" rel="noopener">@tinusha</a>.
+                </p>
+                <p class="intro-paragraph" style="color: var(--text-secondary); margin-top: 24px;">
+                    Tell me what you love or what drives you crazy at <a
+                        href="mailto:feedback@tinusha.com">feedback@tinusha.com</a>. I need your raw feedback to build
+                    this right.
+                </p>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <span>© 2026 Tinusha Savidya. All rights reserved.</span>
+        </footer>
+    </div>
+
+    <!-- Interactive Floating Glassmorphic Navigation Dock -->
+    <div class="dock-container">
+        <nav class="floating-dock">
+            <!-- Left Logo: Links to tinusha.com with dynamic real-time + icon -->
+            <a href="https://tinusha.com" class="dock-logo-btn" id="btn-tinusha" title="tinusha.com">
+                <svg class="logo-node-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10.5 4v6.5H4v3h6.5V20h3v-6.5H20v-3h-6.5V4h-3z" />
+                </svg>
+            </a>
+
+            <div class="dock-divider"></div>
+
+            <!-- Right Navigation Links ordered: Receipts / Docs / Contact -->
+            <div class="dock-links">
+                <button class="dock-btn active-dock-btn" id="btn-receipts"
+                    onclick="switchPage('receipts')">Receipts</button>
+                <button class="dock-btn" id="btn-docs" onclick="switchPage('docs')">Docs</button>
+                <button class="dock-btn" id="btn-contact" onclick="switchPage('contact')">Contact</button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Interactive Command Menu (⌘K Overlay) -->
+    <div class="modal-overlay" id="cmd-overlay" onclick="closeCmdMenuOnOverlay(event)">
+        <div class="cmd-menu">
+            <div class="cmd-input-container">
+                <input type="text" id="cmd-input" class="cmd-input" placeholder="Type a command or search..."
+                    autocomplete="off" oninput="filterCmdList()">
+            </div>
+            <div class="cmd-list" id="cmd-list">
+                <!-- Navigate: Receipts -->
+                <div class="cmd-item" onclick="switchPage('receipts'); toggleCmdMenu();"
+                    data-keywords="receipts engine home tracker metabolic calculation bmr tdee raw">
+                    <div class="cmd-item-label">
+                        <span>📊</span>
+                        <span>Go to Receipts (Home)</span>
+                    </div>
+                    <span class="cmd-shortcut">R</span>
+                </div>
+                <!-- Navigate: Docs -->
+                <div class="cmd-item" onclick="switchPage('docs'); toggleCmdMenu();"
+                    data-keywords="docs manual specs guide under construction instructions">
+                    <div class="cmd-item-label">
+                        <span>📖</span>
+                        <span>Go to Docs</span>
+                    </div>
+                    <span class="cmd-shortcut">D</span>
+                </div>
+                <!-- Navigate: Contact -->
+                <div class="cmd-item" onclick="switchPage('contact'); toggleCmdMenu();"
+                    data-keywords="contact email address linkedin reach feedback write raw">
+                    <div class="cmd-item-label">
+                        <span>✉️</span>
+                        <span>Go to Contact</span>
+                    </div>
+                    <span class="cmd-shortcut">C</span>
+                </div>
+                <!-- Theme Switcher -->
+                <div class="cmd-item" onclick="toggleTheme()"
+                    data-keywords="theme light dark mode toggle styling appearance color">
+                    <div class="cmd-item-label">
+                        <span>🌓</span>
+                        <span>Toggle Theme (Light / Dark)</span>
+                    </div>
+                    <span class="cmd-shortcut">T</span>
+                </div>
+                <!-- Copy Email -->
+                <div class="cmd-item" onclick="copyContact('hello@tinusha.com', 'Email copied!')"
+                    data-keywords="email contact write mail copy redirect">
+                    <div class="cmd-item-label">
+                        <span>✉️</span>
+                        <span>Copy hello@tinusha.com</span>
+                    </div>
+                    <span class="cmd-shortcut">M</span>
+                </div>
+                <!-- Close Menu -->
+                <div class="cmd-item" onclick="toggleCmdMenu()" data-keywords="close escape quit clear exit">
+                    <div class="cmd-item-label">
+                        <span>🚪</span>
+                        <span>Close Menu</span>
+                    </div>
+                    <span class="cmd-shortcut">ESC</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Micro Notifications Toast (Aligned over Bottom Dock) -->
+    <div class="toast" id="toast">Message copied!</div>
+
+    <script>
+        // State Tracking
+        let currentPage = 'receipts';
+
+        // System Theme Initialization
+        const currentTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', currentTheme);
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            showToast(`Switched to ${next} mode`);
+            if (cmdOverlay.classList.contains('active')) {
+                toggleCmdMenu();
+            }
+        }
+
+        // Bottom Navigation Page Switching Logic
+        function switchPage(pageId) {
+            if (pageId === currentPage) return;
+
+            // Hide active page
+            const activePageEl = document.querySelector('.page-view.active-page');
+            if (activePageEl) {
+                activePageEl.classList.remove('active-page');
+            }
+
+            // De-activate all navigation buttons
+            document.querySelectorAll('.dock-btn').forEach(btn => btn.classList.remove('active-dock-btn'));
+
+            // Activate selected page
+            const nextPageEl = document.getElementById(`page-${pageId}`);
+            if (nextPageEl) {
+                nextPageEl.classList.add('active-page');
+                currentPage = pageId;
+
+                const targetBtn = document.getElementById(`btn-${pageId}`);
+                if (targetBtn) {
+                    targetBtn.classList.add('active-dock-btn');
+                }
+            }
+
+            // Smooth scroll back to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Command Menu Configuration
+        const cmdOverlay = document.getElementById('cmd-overlay');
+        const cmdInput = document.getElementById('cmd-input');
+        let selectedIndex = 0;
+
+        function openCmdMenu(e) {
+            if (e) e.preventDefault();
+            toggleCmdMenu();
+        }
+
+        function toggleCmdMenu() {
+            const active = cmdOverlay.classList.toggle('active');
+            if (active) {
+                cmdInput.value = '';
+                filterCmdList();
+                setTimeout(() => cmdInput.focus(), 50);
+            }
+        }
+
+        function closeCmdMenuOnOverlay(e) {
+            if (e.target === cmdOverlay) {
+                toggleCmdMenu();
+            }
+        }
+
+        // Master Key Down Intercepts (Navigation Shortcuts)
+        window.addEventListener('keydown', (e) => {
+            // CMD/CTRL + K Menu toggle
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                toggleCmdMenu();
+            }
+
+            if (e.key === 'Escape') {
+                if (cmdOverlay.classList.contains('active')) toggleCmdMenu();
+            }
+
+            // In-page navigation hotkeys (Only when input systems are unfocused)
+            if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                const key = e.key.toLowerCase();
+                if (key === 'r') switchPage('receipts');
+                if (key === 'd') switchPage('docs');
+                if (key === 'c') switchPage('contact');
+                if (key === 't') toggleTheme();
+            }
+
+            // Active Menu Navigation Arrow system
+            if (cmdOverlay.classList.contains('active')) {
+                const visibleItems = document.querySelectorAll('.cmd-item:not([style*="display: none"])');
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = (selectedIndex + 1) % visibleItems.length;
+                    updateSelectedCmd(visibleItems);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = (selectedIndex - 1 + visibleItems.length) % visibleItems.length;
+                    updateSelectedCmd(visibleItems);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (visibleItems[selectedIndex]) {
+                        visibleItems[selectedIndex].click();
+                    }
+                }
+            }
+        });
+
+        function updateSelectedCmd(items) {
+            items.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.classList.add('selected');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        function filterCmdList() {
+            const filter = cmdInput.value.toLowerCase();
+            const items = document.querySelectorAll('.cmd-item');
+
+            items.forEach((item) => {
+                const keywords = item.getAttribute('data-keywords').toLowerCase();
+                if (keywords.includes(filter)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            selectedIndex = 0;
+            const visibleItems = document.querySelectorAll('.cmd-item:not([style*="display: none"])');
+            updateSelectedCmd(visibleItems);
+        }
+
+        // Precise UI Toast notifications
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // Reliable copy action
+        function copyContact(text, successMessage) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+
+            showToast(successMessage);
+            if (cmdOverlay.classList.contains('active')) {
+                toggleCmdMenu();
+            }
+        }
+    </script>
+</body>
+
+</html>
